@@ -8,9 +8,9 @@
 ![circuts](DaikinAirConditioner/TurnOnOffDaikinAC/circuts.jpeg)
 * IR LED
 * NPN transistor (2N2222A)
-![circuts](DaikinAirConditioner/TurnOnOffDaikinAC/circuts.jpeg)
 
 ### TurnOnOffDaikinACByWifi
+![circuts](DaikinAirConditioner/TurnOnOffDaikinACByWifi/circuts.jpeg)
 
 ## FirstServer
 * [Reference](https://blog.jmaker.com.tw/esp8266-esp01/)
