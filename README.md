@@ -11,6 +11,8 @@
 
 ### TurnOnOffDaikinACByWifi
 ![circuts](DaikinAirConditioner/TurnOnOffDaikinACByWifi/circuts.jpeg)
+![module](DaikinAirConditioner/TurnOnOffDaikinACByWifi/module.jpeg)
+* Powered by lithium battery (18650)
 
 ## FirstServer
 * [Reference](https://blog.jmaker.com.tw/esp8266-esp01/)
