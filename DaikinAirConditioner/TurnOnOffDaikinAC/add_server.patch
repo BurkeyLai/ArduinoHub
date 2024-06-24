@@ -1,0 +1,151 @@
+diff --git a/DaikinAirConditioner/TurnOnOffDaikinAC/TurnOnOffDaikinAC.ino b/DaikinAirConditioner/TurnOnOffDaikinAC/TurnOnOffDaikinAC.ino
+index ebd6b1b..63bb4ab 100644
+--- a/DaikinAirConditioner/TurnOnOffDaikinAC/TurnOnOffDaikinAC.ino
++++ b/DaikinAirConditioner/TurnOnOffDaikinAC/TurnOnOffDaikinAC.ino
+@@ -29,18 +29,139 @@
+ #include <IRsend.h>
+ #include <ir_Daikin.h>
+ 
++/////////////////////// Wifi ///////////////////////
++#include <ESP8266WiFi.h>
++#include <WiFiClient.h>
++#include <ESP8266WebServer.h>
++#include <ESP8266mDNS.h>
++
++#ifndef STASSID
++#define STASSID "burke"  //無線分享器的名稱
++#define STAPSK  "0912404007"    //密碼
++#endif
++
++const char* ssid = STASSID;
++const char* password = STAPSK;
++
++ESP8266WebServer server(80);
++////////////////////////////////////////////////////
++
++
++// Daikin
+ const uint16_t kIrLed = 4;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
+ IRDaikinESP ac(kIrLed);  // Set the GPIO to be used to sending the message
+ int isOn;
++int pressOnOff = 0;
++
++/////////////////////// Wifi ///////////////////////
++void handleRoot() {  //訪客進入主網頁時顯示的內容
++  server.send(200, "text/plain", "Hello From ESP8266 !");
++}
++
++void handleNotFound() {  //找不到網頁時顯示的內容
++  server.send(404, "text/plain", "File Not Found");
++}
++////////////////////////////////////////////////////
++
+ 
+ void setup() {
+-  ac.begin();
+   Serial.begin(115200);
++
++  ac.begin();
+   isOn = 0;
++
++/////////////////////// Wifi ///////////////////////
++  WiFi.mode(WIFI_STA);
++  WiFi.begin(ssid, password);
++  Serial.println("");
++
++  // pinMode(LED_BUILTIN, OUTPUT); //設定GPIO2為OUTPUT
++  // digitalWrite(LED_BUILTIN, HIGH);  //熄滅LED
++
++  // 等待WiFi連線
++  while (WiFi.status() != WL_CONNECTED) {
++    delay(500);
++    Serial.print(".");
++  }
++  
++  delay(5000);
++  Serial.println("");
++  Serial.print("Connected to ");
++  Serial.println(ssid);
++  Serial.print("IP address: ");
++  Serial.println(WiFi.localIP());  //在監控視窗顯示取得的IP
++
++  if (MDNS.begin("esp8266")) {
++    Serial.println("MDNS responder started");
++  }
++
++  server.on("/", handleRoot);  //綁定主網頁會觸發的副程式
++
++  server.on("/on", []() {      //網頁 /on 會執行的程式
++    server.send(200, "text/plain", "AC ON");
++    // digitalWrite(LED_BUILTIN, LOW);  //點亮LED
++    pressOnOff = 1;
++  });
++
++  server.on("/off", []() {      //網頁 /off 會執行的程式
++    server.send(200, "text/plain", "AC OFF");
++    // digitalWrite(LED_BUILTIN, HIGH);  //熄滅LED
++    pressOnOff = 1;
++  });
++
++  server.onNotFound(handleNotFound);  //綁定找不到網頁時會觸發的副程式
++
++  server.begin();
++  Serial.println("HTTP server started");
++////////////////////////////////////////////////////
+ }
+ 
+ 
+ void loop() {
++  server.handleClient();
++  MDNS.update();
++
++  if (pressOnOff == 1) {
++    pressOnOff = 0;
++    if (isOn == 1) {
++      isOn = 0;
++      ac.off();
++      Serial.println("Turn Off");
++    } else {
++      isOn = 1;
++      Serial.println("Sending...");
++
++      // Set up what we want to send. See ir_Daikin.cpp for all the options.
++      ac.on();
++      ac.setFan(1);
++      ac.setMode(kDaikinCool);
++      ac.setTemp(25);
++      ac.setSwingVertical(false);
++      ac.setSwingHorizontal(false);
++
++      // Set the current time to 1:33PM (13:33)
++      // Time works in minutes past midnight
++      ac.setCurrentTime(13 * 60 + 33);
++      // Turn off about 1 hour later at 2:30PM (14:30)
++      ac.enableOffTimer(14 * 60 + 30);
++      Serial.println("Turn On");
++    }
++
++    // Display what we are going to send.
++    Serial.println(ac.toString());
++
++    // Now send the IR signal.
++#if SEND_DAIKIN
++    ac.send();
++    Serial.println("Execute Command!");
++#endif  // SEND_DAIKIN
++
++    // delay(15000);
++  }
++
++
++
++/*
+   while (Serial.available() > 0) {
+     if (Serial.read() == '\n') {
+       if (isOn == 1) {
+@@ -79,4 +200,5 @@ void loop() {
+       // delay(15000);
+     }
+   }
++*/
+ }
